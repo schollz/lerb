@@ -19,7 +19,6 @@ local mxsamples_=include("mx.samples2/lib/mx.samples2")
 engine.name="MxSamples2"
 
 shift=false
-MODE_ERASE=0
 MODE_PLAY=1
 MODE_REC=2
 
@@ -35,8 +34,8 @@ function init()
   redrawer:start()
 
   scale_full=MusicUtil.generate_scale_of_length(0,1,15)
-  -- https://www.ottogumaelius.com/about-marimba
-  scale_full={0,2,4,5,6,7,9,11,12,14,16,17,18,19,21,23,24}
+  -- -- https://www.ottogumaelius.com/about-marimba
+  -- scale_full={0,2,4,5,6,7,9,11,12,14,16,17,18,19,21,23,24}
   -- initialize ers
   ers={}
   er_last={}
@@ -145,11 +144,11 @@ function init()
   })
   sequencer:hard_restart()
 
-  note_left_right=1
-  note_add(1,7)
-  note_add(1,2)
-  note_left_right=2
-  note_add(15,8)
+  -- note_left_right=1
+  -- note_add(1,7)
+  -- note_add(1,2)
+  -- note_left_right=2
+  -- note_add(15,8)
 end
 
 function note_add(note_num,er_num)
@@ -161,7 +160,7 @@ function note_add(note_num,er_num)
   if notes[note_cur].note_er==nil then
     -- setup new sequins
     notes[note_cur].note_er=s({{note_num,er_num}})
-    notes[note_cur].vel=s{90,90,30,90,90,30,90,90} -- TODO make this configurable?
+    notes[note_cur].vel=s{110,110,70,110,110,70,90,100} -- TODO make this configurable?
     notes[note_cur].cur=notes[note_cur].note_er()
   else
     -- add to the current
@@ -169,8 +168,8 @@ function note_add(note_num,er_num)
     table.insert(d,{note_num,er_num})
     notes[note_cur].note_er:settable(d)
   end
+  -- TODO: add a debounce for this resetting
   notes[note_cur].note_er:reset()
-  print(note_cur,note_cur+(note_cur%2==1 and 1 or-1))
   if notes[note_cur+(note_cur%2==1 and 1 or-1)].note_er~=nil then
     notes[note_cur+(note_cur%2==1 and 1 or-1)].note_er:reset()
   end
@@ -228,8 +227,8 @@ function draw_marimba()
   local active_notes={}
   if note_queue_last~=nil then
     for _, note in ipairs(note_queue_last) do
-      if note.ins==ins_cur and (note.left==(note_left_right%2==1)) then 
-        active_notes[note.num]=true
+      if note.ins==ins_cur  then 
+        active_notes[note.num]=note.left==(note_left_right%2==1) and 15 or 10
       end
     end
   end
@@ -246,7 +245,7 @@ function draw_marimba()
     screen.fill()
     if active_notes[i] then
       screen.rect(x,y,width,height)
-      screen.level(15)
+      screen.level( active_notes[i])
       screen.fill()
     end
     if i==note_enc then
@@ -278,10 +277,21 @@ function redraw()
   screen.move(5,10)
   screen.text("instrument: "..ins_cur)
   screen.move(5,18)
-  screen.text("hand: "..(note_left_right==1 and "left" or "right"))
+  screen.text("hand: ")
+  screen.move(30,18)
+  screen.level(note_left_right==1 and 15 or 2)
+  screen.text("left")
+  screen.move(49,18)
+  screen.level(note_left_right==2 and 15 or 2)
+  screen.text("right")
   screen.move(124,10)
   screen.level(er_last[er_enc][15] and 15 or 2) 
   screen.text_right("er: "..er_enc)
+  screen.move(124,18)
+  screen.level(15) 
+  if notes[note_cur].note_er~=nil then
+    screen.text_right("steps: "..notes[note_cur].note_er.length)
+  end
   draw_marimba()
   screen.update()
 end
