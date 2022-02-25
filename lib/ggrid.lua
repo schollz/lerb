@@ -85,6 +85,7 @@ function GGrid:get_visual()
   end
 
   -- illuminate current patterns for current instrument
+  local rows_playing={}
   local current_instrument=notes[note_cur].ins
   for notei, n in ipairs(notes) do
     if n.ins==current_instrument and n.note_er~=nil and n.cur~=nil then 
@@ -93,19 +94,29 @@ function GGrid:get_visual()
         local row=v[2]
         local col=v[1]
         self.visual[row][col+1]=util.clamp(self.visual[row][col+1]+addin,0,13)
-        if n.played and col==n.last_played.num and row==n.last_played.pattern then
-          self.visual[row][col+1]=addin*7
-        end
+        -- if n.played and col==n.last_played.num and row==n.last_played.pattern then
+        --   self.visual[row][col+1]=addin*7
+        -- end
       end
       -- if n.played then 
-      --   for row=1,8 do
-      --     self.visual[row][n.last_played.num+1]=util.clamp(self.visual[row][n.last_played.num+1]+2,0,15)
-      --   end
+      --   rows_playing[n.last_played.pattern]=true
+      --   -- for row=1,8 do
+      --   --   self.visual[row][n.last_played.num+1]=util.clamp(self.visual[row][n.last_played.num+1]+2,0,15)
+      --   -- end
       -- end
     end
   end
 
-  -- for row=1,8 do 
+  if note_queue_last~=nil then
+    for _, note in ipairs(note_queue_last) do
+      if note.ins==ins_cur then 
+        self.visual[note.pattern][note.num+1]=7
+        rows_playing[note.pattern]=true
+      end
+    end
+  end
+
+  -- for row,_ in pairs(rows_playing) do 
   --   for col=2,16 do 
   --     if self.visual[row][col]==0 then
   --       self.visual[row][col]=er_last[row][col-1] and 1 or 0

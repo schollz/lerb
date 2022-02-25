@@ -59,7 +59,7 @@ function init()
   note_cur=1
   ins_cur=4
   note_left_right=1
-  mode_cur=MODE_PLAY
+  mode_cur=MODE_REC
   
   -- start lattice
   local sequencer=lattice:new{
@@ -83,7 +83,7 @@ function init()
             if note_queue==nil then 
               note_queue={}
             end
-            table.insert(note_queue,{ins=note.ins,num=note.cur[1],vel=vel})
+            table.insert(note_queue,{ins=note.ins,num=note.cur[1],pattern=erpat,vel=vel,left=i%2==1})
             notes[i].cur=notes[i].note_er()
           end
         end
@@ -103,7 +103,7 @@ function init()
               if note_queue==nil then 
                 note_queue={}
               end
-              table.insert(note_queue,{ins=ins_cur,num=note,vel=120})
+              table.insert(note_queue,{ins=ins_cur,num=note,pattern=erpat,vel=120,left=false})
             end
           end
         end
@@ -111,18 +111,22 @@ function init()
 
       -- turn off notes loaded in the queue
       if note_queue_last~=nil then
-        for _,note in pairs(note_queue_last) do 
+        for _,note in ipairs(note_queue_last) do 
             local num=scale_full[note.num]+(12*(note.ins+1)) 
-            mxsamples:off({name=_path.audio.."mx.samples/marimba_white",midi=num,velocity=note.vel})
+            mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         end
+        note_queue_last=nil
+      end
+      if next(note_queue)~=nil then 
+        note_queue_last=table.clone(note_queue)
       end
       
       -- play the notes loaded in the queue
-      for _,note in pairs(note_queue) do 
-        local num=scale_full[note.num]+(12*(note.ins+1)) 
-        mxsamples:on({name=_path.audio.."mx.samples/marimba_white",midi=num,velocity=note.vel})
+      for _,note in ipairs(note_queue) do 
+        local num=scale_full[note.num]+(12*(note.ins)) 
+        mxsamples:on({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
+        -- engine.play(note.ins,num,note.vel)
       end
-      note_queue_last=table.clone(note_queue)
 
       -- iterate the ers
       step=step+1
