@@ -14,18 +14,17 @@ lattice=require("lattice")
 s=require("sequins")
 er=require("er")
 grid_=include("mallets/lib/ggrid")
-local mxsamples_=include("mx.samples2/lib/mx.samples2")
 
-engine.name="MxSamples2"
--- engine.name="Marimba"
+-- local mxsamples_=include("mx.samples2/lib/mx.samples2")
+-- engine.name="MxSamples2"
 
 MODE_ERASE=0
 MODE_PLAY=1
 MODE_REC=2
 
 function init()
-  mxsamples=mxsamples_:new()
-  params:set("mxsamples_release",0.25)
+  -- mxsamples=mxsamples_:new()
+  -- params:set("mxsamples_release",0.25)
 
   gg=grid_:new()
   local redrawer=metro.init()
@@ -35,7 +34,8 @@ function init()
   redrawer:start()
 
   scale_full=MusicUtil.generate_scale_of_length(0,1,15)
-
+  -- https://www.ottogumaelius.com/about-marimba
+  scale_full={0,2,4,5,6,7,9,11,12,14,16,17,18,19,21,23,24}
   -- initialize ers
   ers={}
   er_last={}
@@ -112,7 +112,7 @@ function init()
       if note_queue_last~=nil then
         for _,note in ipairs(note_queue_last) do
           local num=scale_full[note.num]+(12*(note.ins+1))
-          mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
+          -- mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         end
         note_queue_last=nil
       end
@@ -123,7 +123,7 @@ function init()
       -- play the notes loaded in the queue
       for _,note in ipairs(note_queue) do
         local num=scale_full[note.num]+(12*(note.ins))
-        mxsamples:on({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
+        -- mxsamples:on({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         -- engine.play(note.ins,num,note.vel)
       end
 
@@ -190,6 +190,39 @@ function key(k,z)
 
 end
 
+function draw_marimba()
+  local height=32
+  local width=6
+  local x=2
+  local ymid=42
+  local top_positions={}
+  local bot_positions={}
+  for i=1,15 do
+    local y=math.floor(ymid-height/2)
+    screen.rect(x,y,width,height)
+    screen.level(5)
+    screen.fill()
+    -- if marimbas[sel_instrument].note_last~=nil then
+    --   if i==marimbas[sel_instrument].note_last[1] or i==marimbas[sel_instrument].note_last[2] then
+    --     screen.rect(x,y,width,height)
+    --     screen.level(15)
+    --     screen.fill()
+    --   end
+    -- end
+    -- if marimbas[sel_instrument].parts[sel_part].note==i
+    --   or marimbas[sel_instrument].parts[sel_part].note+marimbas[sel_instrument].parts[sel_part].interval==i then
+    --   screen.rect(x,y,width,height)
+    --   screen.level(15)
+    --   screen.stroke()
+    -- end
+    table.insert(top_positions,{x+width/2,y+height})
+    table.insert(bot_positions,{x+width/2,y})
+    height=height-1
+    x=x+8
+  end
+
+end
+
 function updater()
   if flag_update_er then
     update_er()
@@ -200,8 +233,8 @@ end
 
 function redraw()
   screen.clear()
-  screen.move(32,64)
-  screen.text("mallets")
+  screen.aa(1)
+  draw_marimba()
   screen.update()
 end
 
