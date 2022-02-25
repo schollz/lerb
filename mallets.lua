@@ -1,21 +1,20 @@
--- lerb
+-- mallets
 
--- lerb v0.0.0
+-- mallets v0.0.0
 --
 --
--- llllllll.co/t/lerb
+-- llllllll.co/t/mallets
 --
 --
 --
 --    ▼ instructions below ▼
 
-
 MusicUtil=require("musicutil")
 lattice=require("lattice")
 s=require("sequins")
 er=require("er")
-grid_=include("lerb/lib/ggrid")
-local mxsamples_=include("mx.samples2/lib/mx.samples2") 
+grid_=include("mallets/lib/ggrid")
+local mxsamples_=include("mx.samples2/lib/mx.samples2")
 
 engine.name="MxSamples2"
 -- engine.name="Marimba"
@@ -35,8 +34,8 @@ function init()
   redrawer.event=updater
   redrawer:start()
 
-  scale_full=MusicUtil.generate_scale_of_length(0, 1, 15)
-  
+  scale_full=MusicUtil.generate_scale_of_length(0,1,15)
+
   -- initialize ers
   ers={}
   er_last={}
@@ -45,7 +44,7 @@ function init()
     table.insert(ers,s(er.gen(v,16,0)))
     er_last[i]={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}
   end
-  
+
   notes={
     {ins=1},
     {ins=1},
@@ -60,7 +59,7 @@ function init()
   ins_cur=4
   note_left_right=1
   mode_cur=MODE_REC
-  
+
   -- start lattice
   local sequencer=lattice:new{
     ppqn=96
@@ -71,16 +70,16 @@ function init()
       local note_queue={}
       for i,note in ipairs(notes) do
         notes[i].played=false
-        if note.note_er~=nil and note.cur~=nil and note.ins~=nil then 
-          -- local erpat=note.pattern.data[note.pattern.ix]   
+        if note.note_er~=nil and note.cur~=nil and note.ins~=nil then
+          -- local erpat=note.pattern.data[note.pattern.ix]
           -- local trig=ers[erpat].data[ers[erpat].ix]
           local erpat=note.cur[2]
           local trig=ers[erpat].data[ers[erpat].ix]
-          if trig then 
+          if trig then
             local vel=notes[i].vel()
             notes[i].played=true
             notes[i].last_played={num=note.cur[1],pattern=note.cur[2]}
-            if note_queue==nil then 
+            if note_queue==nil then
               note_queue={}
             end
             table.insert(note_queue,{ins=note.ins,num=note.cur[1],pattern=erpat,vel=vel,left=i%2==1})
@@ -90,17 +89,17 @@ function init()
       end
 
       -- if in play mode, load current notes in queue
-      if mode_cur==MODE_PLAY then 
+      if mode_cur==MODE_PLAY then
         for k,_ in pairs(gg.pressed_buttons) do
           local row_,col_=k:match("(%d+),(%d+)")
           local col=tonumber(col_)
-          if col>1 then 
+          if col>1 then
             local erpat=tonumber(row_)
             local trig=ers[erpat].data[ers[erpat].ix]
             if trig then
               local vel=120
               local note=col-1
-              if note_queue==nil then 
+              if note_queue==nil then
                 note_queue={}
               end
               table.insert(note_queue,{ins=ins_cur,num=note,pattern=erpat,vel=120,left=false})
@@ -111,19 +110,19 @@ function init()
 
       -- turn off notes loaded in the queue
       if note_queue_last~=nil then
-        for _,note in ipairs(note_queue_last) do 
-            local num=scale_full[note.num]+(12*(note.ins+1)) 
-            mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
+        for _,note in ipairs(note_queue_last) do
+          local num=scale_full[note.num]+(12*(note.ins+1))
+          mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         end
         note_queue_last=nil
       end
-      if next(note_queue)~=nil then 
+      if next(note_queue)~=nil then
         note_queue_last=table.clone(note_queue)
       end
-      
+
       -- play the notes loaded in the queue
-      for _,note in ipairs(note_queue) do 
-        local num=scale_full[note.num]+(12*(note.ins)) 
+      for _,note in ipairs(note_queue) do
+        local num=scale_full[note.num]+(12*(note.ins))
         mxsamples:on({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         -- engine.play(note.ins,num,note.vel)
       end
@@ -147,11 +146,11 @@ end
 
 function note_add(note_num,er_num)
   note_cur=(ins_cur-1)*2+note_left_right
-  if notes[note_cur]==nil then 
+  if notes[note_cur]==nil then
     notes[note_cur]={ins=ins_cur}
   end
   print("adding note "..note_num.." with er "..er_num.." to ins "..ins_cur)
-  if notes[note_cur].note_er==nil then 
+  if notes[note_cur].note_er==nil then
     -- setup new sequins
     notes[note_cur].note_er=s({{note_num,er_num}})
     notes[note_cur].vel=s{90,90,30,90,90,30,90,90} -- TODO make this configurable?
@@ -163,9 +162,9 @@ function note_add(note_num,er_num)
     notes[note_cur].note_er:settable(d)
   end
   notes[note_cur].note_er:reset()
-  print(note_cur,note_cur+(note_cur%2==1 and 1 or -1))
-  if notes[note_cur+(note_cur%2==1 and 1 or -1)].note_er~=nil then 
-    notes[note_cur+(note_cur%2==1 and 1 or -1)].note_er:reset()
+  print(note_cur,note_cur+(note_cur%2==1 and 1 or-1))
+  if notes[note_cur+(note_cur%2==1 and 1 or-1)].note_er~=nil then
+    notes[note_cur+(note_cur%2==1 and 1 or-1)].note_er:reset()
   end
 end
 
@@ -178,9 +177,9 @@ function update_er()
 end
 
 function enc(k,d)
-  if k==1 then 
-  elseif k==2 then 
-  elseif k==3 then 
+  if k==1 then
+  elseif k==2 then
+  elseif k==3 then
     -- rotate ers
     table.rotatex(er_pulses,d)
     flag_update_er=true
@@ -192,7 +191,7 @@ function key(k,z)
 end
 
 function updater()
-  if flag_update_er then 
+  if flag_update_er then
     update_er()
   end
 
@@ -202,7 +201,7 @@ end
 function redraw()
   screen.clear()
   screen.move(32,64)
-  screen.text("lerb")
+  screen.text("mallets")
   screen.update()
 end
 
@@ -210,11 +209,9 @@ function rerun()
   norns.script.load(norns.state.script)
 end
 
-
 function cleanup()
 
 end
-
 
 function table.get_rotation(t)
   local t2={}
