@@ -64,6 +64,11 @@ function GGrid:key_press(row,col,on)
   elseif col==1 and row<=6 and on then
     ins_cur=row-2
     note_cur=(ins_cur-1)*2+note_left_right
+  elseif col==1 and row==8 and on then
+    mode_cur=mode_cur+1
+    if mode_cur>2 then
+      mode_cur=0
+    end    
   end
 end
 
@@ -83,13 +88,13 @@ function GGrid:get_visual()
   local current_instrument=notes[note_cur].ins
   for notei, n in ipairs(notes) do
     if n.ins==current_instrument and n.note_er~=nil and n.cur~=nil then 
-      local addin=(notei%2+1)==note_left_right and 2 or 5
+      local addin=(notei%2+1)==note_left_right and 1 or 2
       for _, v in ipairs(n.note_er.data) do
         local row=v[2]
         local col=v[1]
-        self.visual[row][col+1]=util.clamp(self.visual[row][col+1]+addin,0,15)
+        self.visual[row][col+1]=util.clamp(self.visual[row][col+1]+addin,0,13)
         if n.played and col==n.last_played.num and row==n.last_played.pattern then
-          self.visual[row][col+1]=15
+          self.visual[row][col+1]=addin*7
         end
       end
       -- if n.played then 
@@ -100,13 +105,13 @@ function GGrid:get_visual()
     end
   end
 
-  for row=1,8 do 
-    for col=2,16 do 
-      if self.visual[row][col]==0 then
-        self.visual[row][col]=er_last[row][col-1] and 1 or 0
-      end
-    end
-  end
+  -- for row=1,8 do 
+  --   for col=2,16 do 
+  --     if self.visual[row][col]==0 then
+  --       self.visual[row][col]=er_last[row][col-1] and 1 or 0
+  --     end
+  --   end
+  -- end
 
   -- illuminate current note
   self.visual[note_left_right][1]=15

@@ -15,14 +15,18 @@ lattice=require("lattice")
 s=require("sequins")
 er=require("er")
 grid_=include("lerb/lib/ggrid")
+local mxsamples_=include("mx.samples2/lib/mx.samples2") 
 
-engine.name="Marimba"
+engine.name="MxSamples2"
+-- engine.name="Marimba"
 
 MODE_ERASE=0
 MODE_PLAY=1
 MODE_REC=2
 
 function init()
+  mxsamples=mxsamples_:new()
+  params:set("mxsamples_release",0.25)
 
   gg=grid_:new()
   local redrawer=metro.init()
@@ -76,10 +80,10 @@ function init()
             local vel=notes[i].vel()
             notes[i].played=true
             notes[i].last_played={num=note.cur[1],pattern=note.cur[2]}
-            if note_queue[note.ins]==nil then 
-              note_queue[note.ins]={}
+            if note_queue==nil then 
+              note_queue={}
             end
-            table.insert(note_queue[note.ins],{num=note.cur[1],vel=vel})
+            table.insert(note_queue,{ins=note.ins,num=note.cur[1],vel=vel})
             notes[i].cur=notes[i].note_er()
           end
         end
@@ -96,26 +100,30 @@ function init()
             if trig then
               local vel=120
               local note=col-1
-              if note_queue[ins_cur]==nil then 
-                note_queue[ins_cur]={}
+              if note_queue==nil then 
+                note_queue={}
               end
-              print(note)
-              table.insert(note_queue[ins_cur],{num=note,vel=120})
+              table.insert(note_queue,{ins=ins_cur,num=note,vel=120})
             end
           end
         end
       end
-      
-      -- play the notes loaded in the queue
-      for i,ns in pairs(note_queue) do 
-        for j, note in ipairs(ns) do
-          if j<=2 then -- two hands can only play two notes at a time
-            local num=scale_full[note.num]+(12*(i)) -- TODO: octave should depend on instrument
-            print(i,num,note.vel)
-            engine.play(i,num,note.vel)
-          end
+
+      -- turn off notes loaded in the queue
+      if note_queue_last~=nil then
+        for _,note in pairs(note_queue_last) do 
+            local num=scale_full[note.num]+(12*(note.ins+1)) 
+            mxsamples:off({name=_path.audio.."mx.samples/marimba_white",midi=num,velocity=note.vel})
         end
       end
+      
+      -- play the notes loaded in the queue
+      for _,note in pairs(note_queue) do 
+        local num=scale_full[note.num]+(12*(note.ins+1)) 
+        mxsamples:on({name=_path.audio.."mx.samples/marimba_white",midi=num,velocity=note.vel})
+      end
+      note_queue_last=table.clone(note_queue)
+
       -- iterate the ers
       step=step+1
       for i,_ in ipairs(ers) do
@@ -134,6 +142,7 @@ function init()
 end
 
 function note_add(note_num,er_num)
+  note_cur=(ins_cur-1)*2+note_left_right
   if notes[note_cur]==nil then 
     notes[note_cur]={ins=ins_cur}
   end
@@ -245,3 +254,6 @@ function table.rotatex(t,d)
   end
 end
 
+function table.clone(org)
+  return {table.unpack(org)}
+end
