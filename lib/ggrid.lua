@@ -54,10 +54,16 @@ function GGrid:key_press(row,col,on)
   else
     self.pressed_buttons[row..","..col]=nil
   end
-  if col<16 and on then
-    note_add(col,row) -- defined as global
-  elseif col==16 and row<=6 then
-    note_cur=row
+  if col>1 and on then
+    if mode_cur==MODE_REC then 
+      note_add(col-1,row)
+    end
+  elseif col==1 and row<=2 and on then
+    note_left_right=row
+    note_cur=(ins_cur-1)*2+note_left_right
+  elseif col==1 and row<=6 and on then
+    ins_cur=row-2
+    note_cur=(ins_cur-1)*2+note_left_right
   end
 end
 
@@ -76,28 +82,38 @@ function GGrid:get_visual()
   -- illuminate current patterns for current instrument
   local current_instrument=notes[note_cur].ins
   for notei, n in ipairs(notes) do
-    if n.ins==current_instrument and n.pattern~=nil and n.num~=nil then 
-      local rows={}
-      local cols={}
-      for _, v in ipairs(n.pattern.data) do
-        table.insert(rows,v)
-      end
-      for _, v in ipairs(n.num.data) do
-        table.insert(cols,v)
-      end
-      for i,_ in ipairs(rows) do
-        self.visual[rows[i]][cols[i]]=util.clamp(self.visual[rows[i]][cols[i]]+2,0,15)
-      end
-      if n.played then 
-        for row=1,8 do
-          self.visual[row][n.last_played.num]=util.clamp(self.visual[row][n.last_played.num]+2,0,15)
+    if n.ins==current_instrument and n.note_er~=nil and n.cur~=nil then 
+      local addin=(notei%2+1)==note_left_right and 2 or 5
+      for _, v in ipairs(n.note_er.data) do
+        local row=v[2]
+        local col=v[1]
+        self.visual[row][col+1]=util.clamp(self.visual[row][col+1]+addin,0,15)
+        if n.played and col==n.last_played.num and row==n.last_played.pattern then
+          self.visual[row][col+1]=15
         end
+      end
+      -- if n.played then 
+      --   for row=1,8 do
+      --     self.visual[row][n.last_played.num+1]=util.clamp(self.visual[row][n.last_played.num+1]+2,0,15)
+      --   end
+      -- end
+    end
+  end
+
+  for row=1,8 do 
+    for col=2,16 do 
+      if self.visual[row][col]==0 then
+        self.visual[row][col]=er_last[row][col-1] and 1 or 0
       end
     end
   end
 
   -- illuminate current note
-  self.visual[note_cur][16]=15
+  self.visual[note_left_right][1]=15
+  self.visual[ins_cur+2][1]=15
+
+  -- illuminate current mode
+  self.visual[8][1]=mode_cur*5
   
   -- illuminate currently pressed button
   for k,_ in pairs(self.pressed_buttons) do

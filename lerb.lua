@@ -18,6 +18,10 @@ grid_=include("lerb/lib/ggrid")
 
 engine.name="Marimba"
 
+MODE_ERASE=0
+MODE_PLAY=1
+MODE_REC=2
+
 function init()
 
   gg=grid_:new()
@@ -31,55 +35,73 @@ function init()
   
   -- initialize ers
   ers={}
+  er_last={}
   er_pulses={1,2,3,5,7,11,13,15}
   for i,v in ipairs(er_pulses) do
     table.insert(ers,s(er.gen(v,16,0)))
+    er_last[i]={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}
   end
   
   notes={
-    -- TODO: erase all of these
-    {ins=1,num=s{1,1,1,2,3,4},pattern=s{2,2,2,3,7,7},vel=s{80,80,40,80,80,40,80,80}},
+    {ins=1},
     {ins=1},
     {ins=2},
     {ins=2},
     {ins=3},
     {ins=3},
-    -- {ins=1,num=s{1,1,1,2,3,4},pattern=s{2,2,2,3,7,7},vel=s{80,80,40,80,80,40,80,80}},
-    -- {ins=1,num=s{8,8,8,9},pattern=s{2,4,2,3},vel=s{80,80,40,80,80,40,80,80}},
-    -- {ins=2,num=s{1,1,1,1,1,1,2},pattern=s{1,4,6,7,2,3,3},vel=s{80,80,40,80,80,40,80,80}},
-    -- {ins=2,num=s{3,3,3,3,3,3,4},pattern=s{1,4,6,7,2,3,3},vel=s{80,80,40,80,80,40,80,80}},
-    -- {ins=2,num=s{2,4,8,10,9,6,2,3,3,3},pattern=s{3,4,6,1,8,3,4,6,1,8},vel=s{80,80,40,80,80,40,80,80}},
-    -- {ins=3,num=s{ 4, 4, 4, 6, 4, 4, 4, 5},pattern=s{5,5,1,2,4,7,7,7},vel=s{80,80,40,80,80,40,80,80}},
-    -- {ins=3,num=s{12,12,12,14,13,12,12,11},pattern=s{5,5,1,2,4,7,7,7},vel=s{80,80,40,80,80,40,80,80}},
+    {ins=4},
+    {ins=4},
   }
-  note_cur=2 -- TODO: this should be 1 initially
-  ins_cur=1 -- TODO: this should be 1 also
+  note_cur=1
+  ins_cur=4
+  note_left_right=1
+  mode_cur=MODE_PLAY
   
   -- start lattice
   local sequencer=lattice:new{
     ppqn=96
   }
+  local step=-1
   sequencer:new_pattern({
     action=function(t)
       local note_queue={}
       for i,note in ipairs(notes) do
         notes[i].played=false
-        if note.num~=nil and note.pattern~=nil and note.ins~=nil then 
+        if note.note_er~=nil and note.cur~=nil and note.ins~=nil then 
           -- local erpat=note.pattern.data[note.pattern.ix]   
           -- local trig=ers[erpat].data[ers[erpat].ix]
-          -- hmmmmm I don't think I understand what I'm doing but it sounds cool
-          local erpat=note.pattern.data[note.pattern.ix]   
+          local erpat=note.cur[2]
           local trig=ers[erpat].data[ers[erpat].ix]
           if trig then 
-            notes[i].pattern()
-            local num=notes[i].num()
             local vel=notes[i].vel()
             notes[i].played=true
-            notes[i].last_played={num=num,pattern=erpat}
+            notes[i].last_played={num=note.cur[1],pattern=note.cur[2]}
             if note_queue[note.ins]==nil then 
               note_queue[note.ins]={}
             end
-            table.insert(note_queue[note.ins],{num=num,vel=vel})
+            table.insert(note_queue[note.ins],{num=note.cur[1],vel=vel})
+            notes[i].cur=notes[i].note_er()
+          end
+        end
+      end
+
+      -- if in play mode, load current notes in queue
+      if mode_cur==MODE_PLAY then 
+        for k,_ in pairs(gg.pressed_buttons) do
+          local row_,col_=k:match("(%d+),(%d+)")
+          local col=tonumber(col_)
+          if col>1 then 
+            local erpat=tonumber(row_)
+            local trig=ers[erpat].data[ers[erpat].ix]
+            if trig then
+              local vel=120
+              local note=col-1
+              if note_queue[ins_cur]==nil then 
+                note_queue[ins_cur]={}
+              end
+              print(note)
+              table.insert(note_queue[ins_cur],{num=note,vel=120})
+            end
           end
         end
       end
@@ -88,14 +110,21 @@ function init()
       for i,ns in pairs(note_queue) do 
         for j, note in ipairs(ns) do
           if j<=2 then -- two hands can only play two notes at a time
-            local num=scale_full[note.num]+(12*(i+1)) -- TODO: octave should depend on instrument
+            local num=scale_full[note.num]+(12*(i)) -- TODO: octave should depend on instrument
+            print(i,num,note.vel)
             engine.play(i,num,note.vel)
           end
         end
       end
       -- iterate the ers
+      step=step+1
       for i,_ in ipairs(ers) do
-        ers[i]()
+        for j,v in ipairs(er_last[i]) do
+          if j>1 then
+            er_last[i][j-1]=v
+          end
+        end
+        er_last[i][15]=ers[i]()
       end
     end,
     division=1/16,
@@ -109,19 +138,21 @@ function note_add(note_num,er_num)
     notes[note_cur]={ins=ins_cur}
   end
   print("adding note "..note_num.." with er "..er_num.." to ins "..ins_cur)
-  if notes[note_cur].num==nil then 
+  if notes[note_cur].note_er==nil then 
     -- setup new sequins
-    notes[note_cur].num=s{note_num}
-    notes[note_cur].pattern=s{er_num}
+    notes[note_cur].note_er=s({{note_num,er_num}})
     notes[note_cur].vel=s{90,90,30,90,90,30,90,90} -- TODO make this configurable?
+    notes[note_cur].cur=notes[note_cur].note_er()
   else
     -- add to the current
-    local d={table.unpack(notes[note_cur].num.data)}
-    table.insert(d,note_num)
-    notes[note_cur].num:settable(d)
-    d={table.unpack(notes[note_cur].pattern.data)}
-    table.insert(d,er_num)
-    notes[note_cur].pattern:settable(d)
+    local d={table.unpack(notes[note_cur].note_er.data)}
+    table.insert(d,{note_num,er_num})
+    notes[note_cur].note_er:settable(d)
+  end
+  notes[note_cur].note_er:reset()
+  print(note_cur,note_cur+(note_cur%2==1 and 1 or -1))
+  if notes[note_cur+(note_cur%2==1 and 1 or -1)].note_er~=nil then 
+    notes[note_cur+(note_cur%2==1 and 1 or -1)].note_er:reset()
   end
 end
 
@@ -184,6 +215,13 @@ function table.get_rotation(t)
   end
   table.insert(t2,v1)
   return t2
+end
+
+function table.reverse(t)
+  local len=#t
+  for i=len-1,1,-1 do
+    t[len]=table.remove(t,i)
+  end
 end
 
 function table.rotate(t)
