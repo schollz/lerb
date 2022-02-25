@@ -15,8 +15,8 @@ s=require("sequins")
 er=require("er")
 grid_=include("mallets/lib/ggrid")
 
--- local mxsamples_=include("mx.samples2/lib/mx.samples2")
--- engine.name="MxSamples2"
+local mxsamples_=include("mx.samples2/lib/mx.samples2")
+engine.name="MxSamples2"
 
 shift=false
 MODE_ERASE=0
@@ -24,8 +24,8 @@ MODE_PLAY=1
 MODE_REC=2
 
 function init()
-  -- mxsamples=mxsamples_:new()
-  -- params:set("mxsamples_release",0.25)
+  mxsamples=mxsamples_:new()
+  params:set("mxsamples_release",0.25)
 
   gg=grid_:new()
   local redrawer=metro.init()
@@ -115,7 +115,7 @@ function init()
       if note_queue_last~=nil then
         for _,note in ipairs(note_queue_last) do
           local num=scale_full[note.num]+(12*(note.ins+1))
-          -- mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
+          mxsamples:off({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         end
         note_queue_last=nil
       end
@@ -126,7 +126,7 @@ function init()
       -- play the notes loaded in the queue
       for _,note in ipairs(note_queue) do
         local num=scale_full[note.num]+(12*(note.ins))
-        -- mxsamples:on({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
+        mxsamples:on({name=note.left and "marimba_red" or "marimba_white",midi=num,velocity=note.vel})
         -- engine.play(note.ins,num,note.vel)
       end
 
