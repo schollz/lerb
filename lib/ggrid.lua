@@ -58,11 +58,11 @@ function GGrid:key_press(row,col,on)
     if mode_cur==MODE_REC then 
       note_add(col-1,row)
     end
-  elseif col==1 and row<=2 and on then
-    note_left_right=row
+  elseif col==1 and row==1 and on then
+    note_left_right=3-note_left_right
     note_cur=(ins_cur-1)*2+note_left_right
-  elseif col==1 and row<=6 and on then
-    ins_cur=row-2
+  elseif col==1 and row<=5 and on then
+    ins_cur=row-1
     note_cur=(ins_cur-1)*2+note_left_right
   elseif col==1 and row==8 and on then
     mode_cur=mode_cur+1
@@ -125,7 +125,7 @@ function GGrid:get_visual()
   -- end
 
   -- illuminate current note
-  self.visual[note_left_right][1]=15
+  self.visual[1][1]=note_left_right==1 and 5 or 15
   self.visual[ins_cur+2][1]=15
 
   -- illuminate current mode

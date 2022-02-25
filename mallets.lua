@@ -18,6 +18,7 @@ grid_=include("mallets/lib/ggrid")
 -- local mxsamples_=include("mx.samples2/lib/mx.samples2")
 -- engine.name="MxSamples2"
 
+shift=false
 MODE_ERASE=0
 MODE_PLAY=1
 MODE_REC=2
@@ -59,6 +60,8 @@ function init()
   ins_cur=4
   note_left_right=1
   mode_cur=MODE_REC
+  note_enc=1
+  er_enc=6
 
   -- start lattice
   local sequencer=lattice:new{
@@ -142,6 +145,11 @@ function init()
   })
   sequencer:hard_restart()
 
+  note_left_right=1
+  note_add(1,7)
+  note_add(1,2)
+  note_left_right=2
+  note_add(15,8)
 end
 
 function note_add(note_num,er_num)
@@ -178,22 +186,56 @@ end
 
 function enc(k,d)
   if k==1 then
+    if d==0 then 
+      do return end 
+    end
+    d=d>0 and 1 or -1
+    note_left_right=note_left_right+d
+    if note_left_right>2 and ins_cur<4 then 
+      note_left_right=1
+      ins_cur=ins_cur+1
+    end
+    if note_left_right<1 and ins_cur>1 then 
+      note_left_right=2
+      ins_cur=ins_cur-1
+    end
+    if note_left_right<1 then 
+      note_left_right=1
+    elseif note_left_right>2 then 
+      note_left_right=2
+    end
   elseif k==2 then
-  elseif k==3 then
+    note_enc=util.clamp(note_enc+d,1,15)
+  elseif k==3 and shift then
     -- rotate ers
     table.rotatex(er_pulses,d)
     flag_update_er=true
+  elseif k==3 and not shift then
+    er_enc=util.clamp(er_enc+d,1,8)
   end
 end
 
 function key(k,z)
-
+  if k==1 then
+    shift=z==1
+  elseif k==2 and z==1 then
+  elseif k==3 and z==1 then 
+    note_add(note_enc,er_enc)  
+  end
 end
 
 function draw_marimba()
-  local height=32
-  local width=6
-  local x=2
+  local active_notes={}
+  if note_queue_last~=nil then
+    for _, note in ipairs(note_queue_last) do
+      if note.ins==ins_cur and (note.left==(note_left_right%2==1)) then 
+        active_notes[note.num]=true
+      end
+    end
+  end
+  local height=35
+  local width=7
+  local x=5
   local ymid=42
   local top_positions={}
   local bot_positions={}
@@ -202,19 +244,17 @@ function draw_marimba()
     screen.rect(x,y,width,height)
     screen.level(5)
     screen.fill()
-    -- if marimbas[sel_instrument].note_last~=nil then
-    --   if i==marimbas[sel_instrument].note_last[1] or i==marimbas[sel_instrument].note_last[2] then
-    --     screen.rect(x,y,width,height)
-    --     screen.level(15)
-    --     screen.fill()
-    --   end
-    -- end
-    -- if marimbas[sel_instrument].parts[sel_part].note==i
-    --   or marimbas[sel_instrument].parts[sel_part].note+marimbas[sel_instrument].parts[sel_part].interval==i then
-    --   screen.rect(x,y,width,height)
-    --   screen.level(15)
-    --   screen.stroke()
-    -- end
+    if active_notes[i] then
+      screen.rect(x,y,width,height)
+      screen.level(15)
+      screen.fill()
+    end
+    if i==note_enc then
+      -- screen.line_width(0.5)
+      screen.rect(x+1,y+1,width-1,height-1)
+      screen.level(15)
+      screen.stroke()
+    end
     table.insert(top_positions,{x+width/2,y+height})
     table.insert(bot_positions,{x+width/2,y})
     height=height-1
@@ -233,7 +273,15 @@ end
 
 function redraw()
   screen.clear()
-  screen.aa(1)
+  -- screen.aa(1)
+  screen.level(15)
+  screen.move(5,10)
+  screen.text("instrument: "..ins_cur)
+  screen.move(5,18)
+  screen.text("hand: "..(note_left_right==1 and "left" or "right"))
+  screen.move(124,10)
+  screen.level(er_last[er_enc][15] and 15 or 2) 
+  screen.text_right("er: "..er_enc)
   draw_marimba()
   screen.update()
 end
